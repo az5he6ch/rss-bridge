@@ -19,6 +19,10 @@ define('PROXY_BYBRIDGE', false);
 // Comment this line or keep PROXY_NAME empty to display PROXY_URL instead
 define('PROXY_NAME', 'Hidden Proxy Name');
 
+// Allows the operator to specify custom cache timeouts via '&_cache_timeout=3600'
+// true: enabled, false: disabled (default)
+define('CUSTOM_CACHE_TIMEOUT', false);
+
 date_default_timezone_set('UTC');
 error_reporting(0);
 
@@ -27,6 +31,14 @@ define('CACHE_DIR', __DIR__ . '/cache');
 
 // Specify path for whitelist file
 define('WHITELIST_FILE', __DIR__ . '/whitelist.txt');
+
+
+/*
+Move the CLI arguments to the $_GET array, in order to be able to use
+rss-bridge from the command line
+*/
+parse_str(implode('&', array_slice($argv, 1)), $cliArgs);
+$params = array_merge($_GET, $cliArgs);
 
 /*
   Create a file named 'DEBUG' for enabling debug mode.
@@ -61,6 +73,15 @@ if(!extension_loaded('openssl'))
 
 if(!extension_loaded('libxml'))
 	die('"libxml" extension not loaded. Please check "php.ini"');
+
+if(!extension_loaded('mbstring'))
+	die('"mbstring" extension not loaded. Please check "php.ini"');
+
+if(!extension_loaded('simplexml'))
+	die('"simplexml" extension not loaded. Please check "php.ini"');
+
+if(!extension_loaded('curl'))
+	die('"curl" extension not loaded. Please check "php.ini"');
 
 // configuration checks
 if(ini_get('allow_url_fopen') !== "1")
@@ -124,8 +145,8 @@ try {
 		$whitelist_selection = array_map('strtolower', $whitelist_selection);
 	}
 
-	$action = filter_input(INPUT_GET, 'action');
-	$bridge = filter_input(INPUT_GET, 'bridge');
+	$action = array_key_exists('action', $params) ? $params['action'] : null;
+	$bridge = array_key_exists('bridge', $params) ? $params['bridge'] : null;
 
 	if($action === 'display' && !empty($bridge)) {
 		// DEPRECATED: 'nameBridge' scheme is replaced by 'name' in bridge parameter values
@@ -134,7 +155,7 @@ try {
 			$bridge = substr($bridge, 0, $pos);
 		}
 
-		$format = filter_input(INPUT_GET, 'format')
+		$format = $params['format']
 			or returnClientError('You must specify a format!');
 
 		// DEPRECATED: 'nameFormat' scheme is replaced by 'name' in format parameter values
@@ -152,12 +173,20 @@ try {
 		// Data retrieval
 		$bridge = Bridge::create($bridge);
 
-		$noproxy = filter_input(INPUT_GET, '_noproxy', FILTER_VALIDATE_BOOLEAN);
+		$noproxy = array_key_exists('_noproxy', $params) && filter_var($params['_noproxy'], FILTER_VALIDATE_BOOLEAN);
 		if(defined('PROXY_URL') && PROXY_BYBRIDGE && $noproxy) {
 			define('NOPROXY', true);
 		}
 
-		$params = $_GET;
+		// Custom cache timeout
+		$cache_timeout = -1;
+		if(array_key_exists('_cache_timeout', $params)) {
+			if(!CUSTOM_CACHE_TIMEOUT) {
+				throw new \HttpException('This server doesn\'t support "_cache_timeout"!');
+			}
+
+			$cache_timeout = filter_var($params['_cache_timeout'], FILTER_VALIDATE_INT);
+		}
 
 		// Initialize cache
 		$cache = Cache::create('FileCache');
@@ -169,11 +198,17 @@ try {
 		unset($params['bridge']);
 		unset($params['format']);
 		unset($params['_noproxy']);
+		unset($params['_cache_timeout']);
 
 		// Load cache & data
 		try {
 			$bridge->setCache($cache);
+			$bridge->setCacheTimeout($cache_timeout);
 			$bridge->setDatas($params);
+		} catch(Error $e) {
+			http_response_code($e->getCode());
+			header('Content-Type: text/html');
+			die(buildBridgeException($e, $bridge));
 		} catch(Exception $e) {
 			http_response_code($e->getCode());
 			header('Content-Type: text/html');
@@ -186,10 +221,14 @@ try {
 			$format->setItems($bridge->getItems());
 			$format->setExtraInfos($bridge->getExtraInfos());
 			$format->display();
-		} catch(Exception $e) {
+		} catch(Error $e) {
 			http_response_code($e->getCode());
 			header('Content-Type: text/html');
 			die(buildTransformException($e, $bridge));
+		} catch(Exception $e) {
+			http_response_code($e->getCode());
+			header('Content-Type: text/html');
+			die(buildBridgeException($e, $bridge));
 		}
 
 		die;
@@ -264,7 +303,7 @@ EOD;
 		echo $inactiveBridges;
 	?>
 	<section class="footer">
-		<a href="https://github.com/RSS-Bridge/rss-bridge">RSS-Bridge 2017-08-19 ~ Public Domain</a><br />
+		<a href="https://github.com/RSS-Bridge/rss-bridge">RSS-Bridge 2018-04-06 ~ Public Domain</a><br />
 		<?= $activeFoundBridgeCount; ?>/<?= count($bridgeList) ?> active bridges. <br />
 		<?php
 			if($activeFoundBridgeCount !== count($bridgeList)) {
