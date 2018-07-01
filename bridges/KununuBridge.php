@@ -58,7 +58,7 @@ class KununuBridge extends BridgeAbstract {
 				break;
 			}
 
-			return self::URI . $site . '/' . $company . '/' . $section;
+			return self::URI . $site . '/' . $company . '/' . $section . '?sort=update_time_desc';
 		}
 
 		return parent::getURI();
@@ -135,8 +135,8 @@ class KununuBridge extends BridgeAbstract {
 	* Encodes unmlauts in the given text
 	*/
 	private function encodeUmlauts($text){
-		$umlauts = Array("/ä/","/ö/","/ü/","/Ä/","/Ö/","/Ü/","/ß/");
-		$replace = Array("ae","oe","ue","Ae","Oe","Ue","ss");
+		$umlauts = Array('/ä/','/ö/','/ü/','/Ä/','/Ö/','/Ü/','/ß/');
+		$replace = Array('ae','oe','ue','Ae','Oe','Ue','ss');
 
 		return preg_replace($umlauts, $replace, $text);
 	}
@@ -190,11 +190,11 @@ class KununuBridge extends BridgeAbstract {
 	* Returns the URI from a given article
 	*/
 	private function extractArticleUri($article){
-		$anchor = $article->find('ku-company-review-more', 0);
+		$anchor = $article->find('h1.review-title a', 0);
 		if(is_null($anchor))
 			returnServerError('Cannot find article URI!');
 
-		return self::URI . $anchor->{'review-url'};
+		return self::URI . $anchor->href;
 	}
 
 	/**

@@ -23,6 +23,13 @@ class FacebookBridge extends BridgeAbstract {
 				'No Video' => 'novideo'
 			),
 			'defaultValue' => 'all'
+		),
+		'skip_reviews' => array(
+			'name' => 'Skip reviews',
+			'type' => 'checkbox',
+			'required' => false,
+			'defaultValue' => false,
+			'title' => 'Feed includes reviews when checked'
 		)
 	));
 
@@ -95,7 +102,7 @@ class FacebookBridge extends BridgeAbstract {
 			if (isset($_SESSION['captcha_fields'], $_SESSION['captcha_action'])) {
 				$captcha_action = $_SESSION['captcha_action'];
 				$captcha_fields = $_SESSION['captcha_fields'];
-				$captcha_fields['captcha_response'] = preg_replace("/[^a-zA-Z0-9]+/", "", $_POST['captcha_response']);
+				$captcha_fields['captcha_response'] = preg_replace('/[^a-zA-Z0-9]+/', '', $_POST['captcha_response']);
 
 				$header = array("Content-type:
 application/x-www-form-urlencoded\r\nReferer: $captcha_action\r\nCookie: noscript=1\r\n");
@@ -120,17 +127,44 @@ application/x-www-form-urlencoded\r\nReferer: $captcha_action\r\nCookie: noscrip
 		if(is_null($html)) {
 			$header = array('Accept-Language: ' . getEnv('HTTP_ACCEPT_LANGUAGE') . "\r\n");
 
-			// First character cannot be a forward slash
-			if(strpos($this->getInput('u'), "/") === 0) {
-				returnClientError('Remove leading slash "/" from the username!');
-			}
+			// Check if the user provided a fully qualified URL
+			if (filter_var($this->getInput('u'), FILTER_VALIDATE_URL)) {
 
-			if(!strpos($this->getInput('u'), "/")) {
-				$html = getSimpleHTMLDOM(self::URI . urlencode($this->getInput('u')) . '?_fb_noscript=1', $header)
-					or returnServerError('No results for this query.');
+				$urlparts = parse_url($this->getInput('u'));
+
+				if($urlparts['host'] !== parse_url(self::URI)['host']) {
+					returnClientError('The host you provided is invalid! Received "'
+					. $urlparts['host']
+					. '", expected "'
+					. parse_url(self::URI)['host']
+					. '"!');
+				}
+
+				if(!array_key_exists('path', $urlparts)
+				|| $urlparts['path'] === '/') {
+					returnClientError('The URL you provided doesn\'t contain the user name!');
+				}
+
+				$user = explode('/', $urlparts['path'])[1];
+
+				$html = getSimpleHTMLDOM(self::URI . urlencode($user) . '?_fb_noscript=1', $header)
+						or returnServerError('No results for this query.');
+
 			} else {
-				$html = getSimpleHTMLDOM(self::URI . 'pages/' . $this->getInput('u') . '?_fb_noscript=1', $header)
-					or returnServerError('No results for this query.');
+
+				// First character cannot be a forward slash
+				if(strpos($this->getInput('u'), '/') === 0) {
+					returnClientError('Remove leading slash "/" from the username!');
+				}
+
+				if(!strpos($this->getInput('u'), '/')) {
+					$html = getSimpleHTMLDOM(self::URI . urlencode($this->getInput('u')) . '?_fb_noscript=1', $header)
+						or returnServerError('No results for this query.');
+				} else {
+					$html = getSimpleHTMLDOM(self::URI . 'pages/' . $this->getInput('u') . '?_fb_noscript=1', $header)
+						or returnServerError('No results for this query.');
+				}
+
 			}
 		}
 
@@ -193,6 +227,12 @@ EOD;
 					$posts = $cell->children();
 				} else {
 					$posts = array($cell);
+				}
+
+				// Optionally skip reviews
+				if($this->getInput('skip_reviews')
+				&& !is_null($cell->find('#review_composer_container', 0))) {
+					continue;
 				}
 
 				foreach($posts as $post) {
@@ -265,7 +305,7 @@ EOD;
 						);
 
 						//Retrieve date of the post
-						$date = $post->find("abbr")[0];
+						$date = $post->find('abbr')[0];
 						if(isset($date) && $date->hasAttribute('data-utime')) {
 							$date = $date->getAttribute('data-utime');
 						} else {

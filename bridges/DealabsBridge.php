@@ -148,7 +148,6 @@ class DealabsBridge extends BridgeAbstract {
 				'cept-thread-image-link',
 				'imgFrame',
 				'imgFrame--noBorder',
-				'box--all-i',
 				'thread-listImgCell',
 			)
 		);
@@ -181,7 +180,7 @@ class DealabsBridge extends BridgeAbstract {
 				'cept-description-container',
 				'overflow--wrap-break',
 				'size--all-s',
-				'size--fromW3-m',
+				'size--fromW3-m'
 			)
 		);
 
@@ -191,7 +190,6 @@ class DealabsBridge extends BridgeAbstract {
 			array(
 				'size--all-s',
 				'flex',
-				'flex--wrap',
 				'flex--justify-e',
 				'flex--grow-1',
 			)
@@ -223,11 +221,11 @@ class DealabsBridge extends BridgeAbstract {
 					. $this->getExpedition($deal)
 					. $this->getLivraison($deal)
 					. $this->getOrigine($deal)
-					. $deal->find('div[class='. $selectorDescription .']', 0)->innertext
+					. $deal->find('div[class*='. $selectorDescription .']', 0)->innertext
 					. '</td><td>'
 					. $deal->find('div[class='. $selectorHot .']', 0)->children(0)->outertext
 					. '</td></table>';
-				$dealDateDiv = $deal->find('div[class='. $selectorDate .']', 0)
+				$dealDateDiv = $deal->find('div[class*='. $selectorDate .']', 0)
 					->find('span[class=hide--toW3]');
 				$itemDate = end($dealDateDiv)->plaintext;
 				if(substr( $itemDate, 0, 6 ) === 'il y a') {
@@ -302,12 +300,18 @@ class DealabsBridge extends BridgeAbstract {
 	private function getReduction($deal)
 	{
 		if($deal->find('span[class*=mute--text text--lineThrough]', 0) != null) {
+			$discountHtml = $deal->find('span[class=space--ml-1 size--all-l size--fromW3-xl]', 0);
+			if($discountHtml != null) {
+				$discount = $discountHtml->plaintext;
+			} else {
+				$discount = '';
+			}
 			return '<div>Réduction : <span style="text-decoration: line-through;">'
 				. $deal->find(
 					'span[class*=mute--text text--lineThrough]', 0
 					)->plaintext
 				. '</span>&nbsp;'
-				. $deal->find('span[class=space--ml-1 size--all-l size--fromW3-xl]', 0)->plaintext
+				. $discount
 				. '</div>';
 		} else {
 			return '';
@@ -412,6 +416,7 @@ class DealabsBridge extends BridgeAbstract {
 			'November',
 			'December'
 		);
+		$string = str_replace('Actualisé ', '', $string);
 		$date_str = trim(str_replace($month_fr, $month_en, $string));
 
 		if(!preg_match('/[0-9]{4}/', $string)) {
