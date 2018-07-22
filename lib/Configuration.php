@@ -1,7 +1,7 @@
 <?php
 class Configuration {
 
-	public static $VERSION = '2018-06-10';
+	public static $VERSION = '2018-07-17';
 
 	public static $config = null;
 
@@ -26,10 +26,6 @@ class Configuration {
 
 		if(!extension_loaded('curl'))
 			die('"curl" extension not loaded. Please check "php.ini"');
-
-		// configuration checks
-		if(ini_get('allow_url_fopen') !== '1')
-			die('"allow_url_fopen" is not set to "1". Please check "php.ini');
 
 		// Check cache folder permissions (write permissions required)
 		if(!is_writable(CACHE_DIR))
