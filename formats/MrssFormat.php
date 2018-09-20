@@ -37,7 +37,7 @@ class MrssFormat extends FormatAbstract {
 			if(isset($item['enclosures'])) {
 				$entryEnclosures .= '<enclosure url="'
 				. $this->xml_encode($item['enclosures'][0])
-				. '"/>';
+				. '" type="' . getMimeType($item['enclosures'][0]) . '" />';
 
 				if(count($item['enclosures']) > 1) {
 					$entryEnclosures .= PHP_EOL;
@@ -45,7 +45,7 @@ class MrssFormat extends FormatAbstract {
 Some media files might not be shown to you. Consider using the ATOM format instead!';
 					foreach($item['enclosures'] as $enclosure) {
 						$entryEnclosures .= '<atom:link rel="enclosure" href="'
-						. $enclosure . '" />'
+						. $enclosure . '" type="' . getMimeType($enclosure) . '" />'
 						. PHP_EOL;
 					}
 				}
@@ -79,6 +79,8 @@ EOD;
 
 		$charset = $this->getCharset();
 
+		/* xml attributes need to have certain characters escaped to be w3c compliant */
+		$imageTitle = htmlspecialchars($title, ENT_COMPAT);
 		/* Data are prepared, now let's begin the "MAGIE !!!" */
 		$toReturn = <<<EOD
 <?xml version="1.0" encoding="{$charset}"?>
@@ -90,7 +92,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 		<title>{$title}</title>
 		<link>http{$https}://{$httpHost}{$httpInfo}/</link>
 		<description>{$title}</description>
-		<image url="{$icon}" title="{$title}" link="{$uri}"/>
+		<image url="{$icon}" title="{$imageTitle}" link="{$uri}"/>
 		<atom:link rel="alternate" type="text/html" href="{$uri}" />
 		<atom:link rel="self" href="http{$https}://{$httpHost}{$serverRequestUri}" />
 		{$items}

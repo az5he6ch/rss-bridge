@@ -253,17 +253,6 @@ class FacebookBridge extends BridgeAbstract {
 
 	private function collectUserData(){
 
-		//Extract a string using start and end delimiters
-		function extractFromDelimiters($string, $start, $end){
-			if(strpos($string, $start) !== false) {
-				$section_retrieved = substr($string, strpos($string, $start) + strlen($start));
-				$section_retrieved = substr($section_retrieved, 0, strpos($section_retrieved, $end));
-				return $section_retrieved;
-			}
-
-			return false;
-		}
-
 		//Utility function for cleaning a Facebook link
 		$unescape_fb_link = function($matches){
 			if(is_array($matches) && count($matches) > 1) {
@@ -430,10 +419,12 @@ EOD;
 
 		if(isset($element)) {
 
+			defaultLinkTo($element, self::URI);
+
 			$author = str_replace(' | Facebook', '', $html->find('title#pageTitle', 0)->innertext);
 			$profilePic = 'https://graph.facebook.com/'
 			. $this->getInput('u')
-			. '/picture?width=200&amp;height=200';
+			. '/picture?width=200&amp;height=200#.image';
 
 			$this->authorName = $author;
 
@@ -489,6 +480,12 @@ EOD;
 							'',
 							$content);
 
+						//Remove "SpSonsSoriSsés"
+						$content = preg_replace(
+							'/(?iU)<a [^>]+ href="#" role="link" [^>}]+>.+<\/a>/iU',
+							'',
+							$content);
+
 						//Remove html nodes, keep only img, links, basic formatting
 						$content = strip_tags($content, '<a><img><i><u><br><p>');
 
@@ -536,7 +533,11 @@ EOD;
 						if(strlen($title) > 64)
 							$title = substr($title, 0, strpos(wordwrap($title, 64), "\n")) . '...';
 
-						$uri = self::URI . $post->find('abbr')[0]->parent()->getAttribute('href');
+						$uri = $post->find('abbr')[0]->parent()->getAttribute('href');
+
+						if (false !== strpos($uri, '?')) {
+							$uri = substr($uri, 0, strpos($uri, '?'));
+						}
 
 						//Build and add final item
 						$item['uri'] = htmlspecialchars_decode($uri);
@@ -544,6 +545,9 @@ EOD;
 						$item['title'] = $title;
 						$item['author'] = $author;
 						$item['timestamp'] = $date;
+						if(strpos($item['content'], '<img') === false)
+							$item['enclosures'] = array($profilePic);
+
 						$this->items[] = $item;
 					}
 				}

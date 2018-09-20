@@ -21,7 +21,7 @@ function getContents($url, $header = array(), $opts = array()){
 		curl_setopt($ch, CURLOPT_PROXY, PROXY_URL);
 	}
 
-	// We always want the resonse header as part of the data!
+	// We always want the response header as part of the data!
 	curl_setopt($ch, CURLOPT_HEADER, true);
 
 	$data = curl_exec($ch);
@@ -151,4 +151,56 @@ function parseResponseHeader($header) {
 
 	return $headers;
 
+}
+
+/**
+ * Determine MIME type from URL/Path file extension
+ * Remark: Built-in functions mime_content_type or fileinfo requires fetching remote content
+ * Remark: A bridge can hint for a MIME type by appending #.ext to a URL, e.g. #.image
+ * Based on https://stackoverflow.com/a/1147952
+ */
+function getMimeType($url) {
+	static $mime = null;
+
+	if (is_null($mime)) {
+		// Default values, overriden by /etc/mime.types when present
+		$mime = array(
+			'jpg' => 'image/jpeg',
+			'gif' => 'image/gif',
+			'png' => 'image/png',
+			'image' => 'image/*'
+		);
+		// '@' is used to mute open_basedir warning, see issue #818
+		if (@is_readable('/etc/mime.types')) {
+			$file = fopen('/etc/mime.types', 'r');
+			while(($line = fgets($file)) !== false) {
+				$line = trim(preg_replace('/#.*/', '', $line));
+				if(!$line)
+					continue;
+				$parts = preg_split('/\s+/', $line);
+				if(count($parts) == 1)
+					continue;
+				$type = array_shift($parts);
+				foreach($parts as $part)
+					$mime[$part] = $type;
+			}
+			fclose($file);
+		}
+	}
+
+	if (strpos($url, '?') !== false) {
+		$url_temp = substr($url, 0, strpos($url, '?'));
+		if (strpos($url, '#') !== false) {
+			$anchor = substr($url, strpos($url, '#'));
+			$url_temp .= $anchor;
+		}
+		$url = $url_temp;
+	}
+
+	$ext = strtolower(pathinfo($url, PATHINFO_EXTENSION));
+	if (!empty($mime[$ext])) {
+		return $mime[$ext];
+	}
+
+	return 'application/octet-stream';
 }
