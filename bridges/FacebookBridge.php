@@ -41,6 +41,15 @@ class FacebookBridge extends BridgeAbstract {
 				'exampleValue' => 'https://www.facebook.com/groups/743149642484225',
 				'title' => 'Insert group name or facebook group URL'
 			)
+		),
+		'global' => array(
+			'limit' => array(
+				'name' => 'Limit',
+				'type' => 'number',
+				'required' => false,
+				'title' => 'Specify the number of items to return (default: -1)',
+				'defaultValue' => -1
+			)
 		)
 	);
 
@@ -115,6 +124,12 @@ class FacebookBridge extends BridgeAbstract {
 			default:
 				returnClientError('Unknown context: "' . $this->queriedContext . '"!');
 
+		}
+
+		$limit = $this->getInput('limit') ?: -1;
+
+		if($limit > 0 && count($this->items) > $limit) {
+			$this->items = array_slice($this->items, 0, $limit);
 		}
 
 	}
@@ -491,8 +506,6 @@ EOD;
 			returnServerError('You must be logged in to view this page. This is not supported by RSS-Bridge.');
 		}
 
-		$html = defaultLinkTo($html, self::URI);
-
 		$element = $html
 		->find('#pagelet_timeline_main_column')[0]
 		->children(0)
@@ -617,6 +630,8 @@ EOD;
 						if (false !== strpos($uri, '?')) {
 							$uri = substr($uri, 0, strpos($uri, '?'));
 						}
+
+						$content = defaultLinkTo($content, self::URI);
 
 						//Build and add final item
 						$item['uri'] = htmlspecialchars_decode($uri);
