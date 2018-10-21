@@ -552,11 +552,7 @@ EOD;
 
 					if(count($post->find('abbr')) > 0) {
 
-						//Retrieve post contents
-						$content = preg_replace(
-							'/(?i)><div class=\"clearfix([^>]+)>(.+?)div\ class=\"userContent\"/i',
-							'',
-							$post);
+						$content = $post->find('.userContentWrapper', 0);
 
 						$content = preg_replace(
 							'/(?i)><div class=\"_59tj([^>]+)>(.+?)<\/div><\/div><a/i',
@@ -605,6 +601,12 @@ EOD;
 
 						$this->unescape_fb_emote($content);
 
+						// Restore links in the post before further parsing
+						$post = defaultLinkTo($post, self::URI);
+
+						// Restore links in the content before adding to the item
+						$content = defaultLinkTo($content, self::URI);
+
 						// Retrieve date of the post
 						$date = $post->find('abbr')[0];
 
@@ -630,8 +632,6 @@ EOD;
 						if (false !== strpos($uri, '?')) {
 							$uri = substr($uri, 0, strpos($uri, '?'));
 						}
-
-						$content = defaultLinkTo($content, self::URI);
 
 						//Build and add final item
 						$item['uri'] = htmlspecialchars_decode($uri);
