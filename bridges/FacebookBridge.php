@@ -56,6 +56,10 @@ class FacebookBridge extends BridgeAbstract {
 	private $authorName = '';
 	private $groupName = '';
 
+	public function getIcon() {
+		return 'https://static.xx.fbcdn.net/rsrc.php/yo/r/iRmz9lCMBD2.ico';
+	}
+
 	public function getName(){
 
 		switch($this->queriedContext) {
@@ -95,7 +99,7 @@ class FacebookBridge extends BridgeAbstract {
 				$user = $this->sanitizeUser($this->getInput('u'));
 
 				if(!strpos($user, '/')) {
-					$uri .= '/pg/' . urlencode($user) . '/posts';
+					$uri .= urlencode($user) . '/posts';
 				} else {
 					$uri .= 'pages/' . $user;
 				}

@@ -262,6 +262,8 @@ try {
 					'icon' => $bridge->getIcon()
 				);
 			} catch(Error $e) {
+				error_log($e);
+
 				$item = array();
 
 				// Create "new" error message every 24 hours
@@ -280,6 +282,8 @@ try {
 
 				$items[] = $item;
 			} catch(Exception $e) {
+				error_log($e);
+
 				$item = array();
 
 				// Create "new" error message every 24 hours
@@ -306,13 +310,15 @@ try {
 			$format = Format::create($format);
 			$format->setItems($items);
 			$format->setExtraInfos($infos);
-			$format->setLastModified($mtime);
+			$format->setLastModified($cache->getTime());
 			$format->display();
 		} catch(Error $e) {
+			error_log($e);
 			http_response_code($e->getCode());
 			header('Content-Type: text/html');
 			die(buildTransformException($e, $bridge));
 		} catch(Exception $e) {
+			error_log($e);
 			http_response_code($e->getCode());
 			header('Content-Type: text/html');
 			die(buildTransformException($e, $bridge));
@@ -321,9 +327,11 @@ try {
 		echo BridgeList::create($whitelist_selection, $showInactive);
 	}
 } catch(HttpException $e) {
+	error_log($e);
 	http_response_code($e->getCode());
 	header('Content-Type: text/plain');
 	die($e->getMessage());
 } catch(\Exception $e) {
+	error_log($e);
 	die($e->getMessage());
 }
