@@ -95,7 +95,8 @@ EOD;
 		foreach($html->find('article') as $content) {
 
 			$item = array();
-			preg_match('/publish_time\\\&quot;:([0-9]+),/', $content->getAttribute('data-store', 0), $match);
+			//echo $content; die();
+			preg_match('/publish_time\\\":([0-9]+),/', $content->getAttribute('data-store', 0), $match);
 			if(isset($match[1]))
 				$timestamp = $match[1];
 			else
@@ -191,7 +192,7 @@ EOD;
 			$item['author'] = html_entity_decode($author, ENT_QUOTES);
 			$item['timestamp'] = html_entity_decode($timestamp, ENT_QUOTES);
 
-			//if($item['timestamp'] != 0)
+			if($item['timestamp'] != 0)
 				array_push($this->items, $item);
 		}
 
@@ -205,7 +206,9 @@ EOD;
 		$regex = '/\\"html\\":(\".+\/div>"),"replace/';
 		preg_match($regex, $pageContent, $result);
 
-		$htmlContent = html_entity_decode(json_decode($result[1]), ENT_QUOTES, 'UTF-8');
+		$htmlContent = json_decode($result[1]);
+		$htmlContent = preg_replace('/(?<!style)="(.*?)"/', '=\'$1\'', $htmlContent);
+		$htmlContent = html_entity_decode($htmlContent, ENT_QUOTES, 'UTF-8');
 
 		return str_get_html($htmlContent);
 	}
