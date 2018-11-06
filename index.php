@@ -28,11 +28,6 @@ if(file_exists('DEBUG')) {
 
 require_once __DIR__ . '/lib/RssBridge.php';
 
-define('PHP_VERSION_REQUIRED', '5.6.0');
-
-// Specify directory for cached files (using FileCache)
-define('CACHE_DIR', __DIR__ . '/cache');
-
 // Specify path for whitelist file
 define('WHITELIST_FILE', __DIR__ . '/whitelist.txt');
 
@@ -54,13 +49,15 @@ if (isset($argv)) {
 	$params = $_GET;
 }
 
-// FIXME : beta test UA spoofing, please report any blacklisting by PHP-fopen-unfriendly websites
+define('USER_AGENT',
+	'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20121202 Firefox/30.0(rss-bridge/'
+	. Configuration::$VERSION
+	. ';+'
+	. REPOSITORY
+	. ')'
+);
 
-$userAgent = 'Mozilla/5.0(X11; Linux x86_64; rv:30.0)';
-$userAgent .= ' Gecko/20121202 Firefox/30.0(rss-bridge/0.1;';
-$userAgent .= '+https://github.com/RSS-Bridge/rss-bridge)';
-
-ini_set('user_agent', $userAgent);
+ini_set('user_agent', USER_AGENT);
 
 // default whitelist
 $whitelist_default = array(
@@ -83,9 +80,9 @@ $whitelist_default = array(
 
 try {
 
-	Bridge::setDir(__DIR__ . '/bridges/');
-	Format::setDir(__DIR__ . '/formats/');
-	Cache::setDir(__DIR__ . '/caches/');
+	Bridge::setDir(PATH_LIB_BRIDGES);
+	Format::setDir(PATH_LIB_FORMATS);
+	Cache::setDir(PATH_LIB_CACHES);
 
 	if(!file_exists(WHITELIST_FILE)) {
 		$whitelist_selection = $whitelist_default;
@@ -221,7 +218,7 @@ try {
 
 		// Initialize cache
 		$cache = Cache::create('FileCache');
-		$cache->setPath(CACHE_DIR);
+		$cache->setPath(PATH_CACHE);
 		$cache->purgeCache(86400); // 24 hours
 		$cache->setParameters($cache_params);
 
@@ -239,7 +236,7 @@ try {
 				$stime = strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']);
 
 				if($mtime <= $stime) { // Cached data is older or same
-					header('HTTP/1.1 304 Not Modified');
+					header('Last-Modified: ' . gmdate('D, d M Y H:i:s ', $mtime) . 'GMT', true, 304);
 					die();
 				}
 			}
@@ -316,13 +313,11 @@ try {
 			$format->display();
 		} catch(Error $e) {
 			error_log($e);
-			http_response_code($e->getCode());
-			header('Content-Type: text/html');
+			header('Content-Type: text/html', true, $e->getCode());
 			die(buildTransformException($e, $bridge));
 		} catch(Exception $e) {
 			error_log($e);
-			http_response_code($e->getCode());
-			header('Content-Type: text/html');
+			header('Content-Type: text/html', true, $e->getCode());
 			die(buildTransformException($e, $bridge));
 		}
 	} else {
@@ -330,8 +325,7 @@ try {
 	}
 } catch(HttpException $e) {
 	error_log($e);
-	http_response_code($e->getCode());
-	header('Content-Type: text/plain');
+	header('Content-Type: text/plain', true, $e->getCode());
 	die($e->getMessage());
 } catch(\Exception $e) {
 	error_log($e);

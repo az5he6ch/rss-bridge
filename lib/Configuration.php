@@ -8,8 +8,8 @@ class Configuration {
 	public static function verifyInstallation() {
 
 		// Check PHP version
-		if(version_compare(PHP_VERSION, PHP_VERSION_REQUIRED) === -1)
-			die('RSS-Bridge requires at least PHP version ' . PHP_VERSION_REQUIRED . '!');
+		if(version_compare(PHP_VERSION, '5.6.0') === -1)
+			die('RSS-Bridge requires at least PHP version 5.6.0!');
 
 		// extensions check
 		if(!extension_loaded('openssl'))
@@ -31,8 +31,8 @@ class Configuration {
 			die('"json" extension not loaded. Please check "php.ini"');
 
 		// Check cache folder permissions (write permissions required)
-		if(!is_writable(CACHE_DIR))
-			die('RSS-Bridge does not have write permissions for ' . CACHE_DIR . '!');
+		if(!is_writable(PATH_CACHE))
+			die('RSS-Bridge does not have write permissions for ' . PATH_CACHE . '!');
 
 		// Check whitelist file permissions (only in DEBUG mode)
 		if(!file_exists(WHITELIST_FILE) && !is_writable(dirname(WHITELIST_FILE)))
