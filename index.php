@@ -1,35 +1,5 @@
 <?php
-/*
-  Create a file named 'DEBUG' for enabling debug mode.
-  For further security, you may put whitelisted IP addresses in the file,
-  one IP per line. Empty file allows anyone(!).
-  Debugging allows displaying PHP error messages and bypasses the cache: this
-  can allow a malicious client to retrieve data about your server and hammer
-  a provider throught your rss-bridge instance.
-*/
-if(file_exists('DEBUG')) {
-	$debug_whitelist = trim(file_get_contents('DEBUG'));
-
-	$debug_enabled = empty($debug_whitelist)
-		|| in_array($_SERVER['REMOTE_ADDR'],
-			explode("\n", str_replace("\r", '', $debug_whitelist)
-		)
-	);
-
-	if($debug_enabled) {
-		ini_set('display_errors', '1');
-		error_reporting(E_ALL);
-		define('DEBUG', true);
-		if (empty($debug_whitelist)) {
-			define('DEBUG_INSECURE', true);
-		}
-	}
-}
-
-require_once __DIR__ . '/lib/RssBridge.php';
-
-// Specify path for whitelist file
-define('WHITELIST_FILE', __DIR__ . '/whitelist.txt');
+require_once __DIR__ . '/lib/rssbridge.php';
 
 Configuration::verifyInstallation();
 Configuration::loadConfiguration();
@@ -66,7 +36,7 @@ $whitelist_default = array(
 	'DansTonChatBridge',
 	'DuckDuckGoBridge',
 	'FacebookBridge',
-	'FlickrExploreBridge',
+	'FlickrBridge',
 	'GooglePlusPostBridge',
 	'GoogleSearchBridge',
 	'IdenticaBridge',
@@ -80,26 +50,7 @@ $whitelist_default = array(
 
 try {
 
-	Bridge::setDir(PATH_LIB_BRIDGES);
-	Format::setDir(PATH_LIB_FORMATS);
-	Cache::setDir(PATH_LIB_CACHES);
-
-	if(!file_exists(WHITELIST_FILE)) {
-		$whitelist_selection = $whitelist_default;
-		$whitelist_write = implode("\n", $whitelist_default);
-		file_put_contents(WHITELIST_FILE, $whitelist_write);
-	} else {
-
-		$whitelist_file_content = file_get_contents(WHITELIST_FILE);
-		if($whitelist_file_content != "*\n") {
-			$whitelist_selection = explode("\n", $whitelist_file_content);
-		} else {
-			$whitelist_selection = Bridge::listBridges();
-		}
-
-		// Prepare for case-insensitive match
-		$whitelist_selection = array_map('strtolower', $whitelist_selection);
-	}
+	Bridge::setWhitelist($whitelist_default);
 
 	$showInactive = filter_input(INPUT_GET, 'show_inactive', FILTER_VALIDATE_BOOLEAN);
 	$action = array_key_exists('action', $params) ? $params['action'] : null;
@@ -126,7 +77,7 @@ try {
 
 			}
 
-			$status = Bridge::isWhitelisted($whitelist_selection, strtolower($bridgeName)) ? 'active' : 'inactive';
+			$status = Bridge::isWhitelisted($bridgeName) ? 'active' : 'inactive';
 
 			$list->bridges[$bridgeName] = array(
 				'status' => $status,
@@ -146,11 +97,6 @@ try {
 		echo json_encode($list, JSON_PRETTY_PRINT);
 
 	} elseif($action === 'display' && !empty($bridge)) {
-		// DEPRECATED: 'nameBridge' scheme is replaced by 'name' in bridge parameter values
-		//             this is to keep compatibility until futher complete removal
-		if(($pos = strpos($bridge, 'Bridge')) === (strlen($bridge) - strlen('Bridge'))) {
-			$bridge = substr($bridge, 0, $pos);
-		}
 
 		$format = $params['format']
 			or returnClientError('You must specify a format!');
@@ -162,7 +108,7 @@ try {
 		}
 
 		// whitelist control
-		if(!Bridge::isWhitelisted($whitelist_selection, strtolower($bridge))) {
+		if(!Bridge::isWhitelisted($bridge)) {
 			throw new \HttpException('This bridge is not whitelisted', 401);
 			die;
 		}
@@ -228,7 +174,7 @@ try {
 
 		if($mtime !== false
 		&& (time() - $cache_timeout < $mtime)
-		&& (!defined('DEBUG') || DEBUG !== true)) { // Load cached data
+		&& !Debug::isEnabled()) { // Load cached data
 
 			// Send "Not Modified" response if client supports it
 			// Implementation based on https://stackoverflow.com/a/10847262
@@ -321,7 +267,7 @@ try {
 			die(buildTransformException($e, $bridge));
 		}
 	} else {
-		echo BridgeList::create($whitelist_selection, $showInactive);
+		echo BridgeList::create($showInactive);
 	}
 } catch(HttpException $e) {
 	error_log($e);

@@ -1,7 +1,7 @@
 <?php
 class Configuration {
 
-	public static $VERSION = 'dev.2018-10-15';
+	public static $VERSION = 'dev.2018-11-10';
 
 	public static $config = null;
 
@@ -34,9 +34,9 @@ class Configuration {
 		if(!is_writable(PATH_CACHE))
 			die('RSS-Bridge does not have write permissions for ' . PATH_CACHE . '!');
 
-		// Check whitelist file permissions (only in DEBUG mode)
-		if(!file_exists(WHITELIST_FILE) && !is_writable(dirname(WHITELIST_FILE)))
-			die('RSS-Bridge does not have write permissions for ' . WHITELIST_FILE . '!');
+		// Check whitelist file permissions
+		if(!file_exists(WHITELIST) && !is_writable(dirname(WHITELIST)))
+			die('RSS-Bridge does not have write permissions for ' . WHITELIST . '!');
 
 	}
 
@@ -90,6 +90,10 @@ class Configuration {
 
 		if(!is_string(self::getConfig('authentication', 'password')))
 			die('Parameter [authentication] => "password" is not a valid string! Please check "config.ini.php"!');
+
+		if(!empty(self::getConfig('admin', 'email'))
+		&& !filter_var(self::getConfig('admin', 'email'), FILTER_VALIDATE_EMAIL))
+			die('Parameter [admin] => "email" is not a valid email address! Please check "config.ini.php"!');
 
 	}
 
