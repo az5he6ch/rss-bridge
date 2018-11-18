@@ -659,14 +659,8 @@ EOD;
 							$date = 0;
 						}
 
-						// Build title from username and content
-						$title = $author;
-
-						if(strlen($title) > 24)
-							$title = substr($title, 0, strpos(wordwrap($title, 24), "\n")) . '...';
-
-						$title = $title . ' | ' . strip_tags($content);
-
+						// Build title from content
+						$title = strip_tags($post->find('.userContent', 0)->innertext);
 						if(strlen($title) > 64)
 							$title = substr($title, 0, strpos(wordwrap($title, 64), "\n")) . '...';
 
@@ -677,10 +671,10 @@ EOD;
 						}
 
 						//Build and add final item
-						$item['uri'] = htmlspecialchars_decode($uri);
-						$item['content'] = htmlspecialchars_decode($content);
-						$item['title'] = $title;
-						$item['author'] = $author;
+						$item['uri'] = htmlspecialchars_decode($uri, ENT_QUOTES);
+						$item['content'] = htmlspecialchars_decode($content, ENT_QUOTES);
+						$item['title'] = htmlspecialchars_decode($title, ENT_QUOTES);
+						$item['author'] = htmlspecialchars_decode($author, ENT_QUOTES);
 						$item['timestamp'] = $date;
 
 						if(strpos($item['content'], '<img') === false) {
