@@ -4,10 +4,15 @@
 * Builds a JSON string from $this->items and return it to browser.
 */
 class JsonFormat extends FormatAbstract {
-
 	public function stringify(){
 		$items = $this->getItems();
-		$toReturn = json_encode($items, JSON_PRETTY_PRINT);
+		$data = array();
+
+		foreach($items as $item) {
+			$data[] = $item->toArray();
+		}
+
+		$toReturn = json_encode($data, JSON_PRETTY_PRINT);
 
 		// Remove invalid non-UTF8 characters
 		ini_set('mbstring.substitute_character', 'none');
