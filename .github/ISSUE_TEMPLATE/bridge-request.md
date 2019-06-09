@@ -1,5 +1,5 @@
 ---
-name: Bridge request template
+name: Bridge request
 about: Use this template for requesting a new bridge
 title: Bridge request for ...
 labels: Bridge-Request
