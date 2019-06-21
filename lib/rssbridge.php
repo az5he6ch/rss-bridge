@@ -61,12 +61,12 @@ require_once PATH_LIB . 'FactoryAbstract.php';
 require_once PATH_LIB . 'FeedItem.php';
 require_once PATH_LIB . 'Debug.php';
 require_once PATH_LIB . 'Exceptions.php';
-require_once PATH_LIB . 'Format.php';
+require_once PATH_LIB . 'FormatFactory.php';
 require_once PATH_LIB . 'FormatAbstract.php';
-require_once PATH_LIB . 'Bridge.php';
+require_once PATH_LIB . 'BridgeFactory.php';
 require_once PATH_LIB . 'BridgeAbstract.php';
 require_once PATH_LIB . 'FeedExpander.php';
-require_once PATH_LIB . 'Cache.php';
+require_once PATH_LIB . 'CacheFactory.php';
 require_once PATH_LIB . 'Authentication.php';
 require_once PATH_LIB . 'Configuration.php';
 require_once PATH_LIB . 'BridgeCard.php';
@@ -84,14 +84,3 @@ require_once PATH_LIB . 'contents.php';
 define('MAX_FILE_SIZE', 10000000); /* Allow larger files for simple_html_dom */
 require_once PATH_LIB_VENDOR . 'simplehtmldom/simple_html_dom.php';
 require_once PATH_LIB_VENDOR . 'php-urljoin/src/urljoin.php';
-
-// Initialize static members
-try {
-	Bridge::setWorkingDir(PATH_LIB_BRIDGES);
-	Format::setWorkingDir(PATH_LIB_FORMATS);
-	Cache::setWorkingDir(PATH_LIB_CACHES);
-} catch(Exception $e) {
-	error_log($e);
-	header('Content-type: text/plain', true, 500);
-	die($e->getMessage());
-}

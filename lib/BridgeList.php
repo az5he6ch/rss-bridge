@@ -61,14 +61,19 @@ EOD;
 		$totalActiveBridges = 0;
 		$inactiveBridges = '';
 
-		$bridgeList = Bridge::getBridgeNames();
-		$formats = Format::getFormatNames();
+		$bridgeFac = new \BridgeFactory();
+		$bridgeFac->setWorkingDir(PATH_LIB_BRIDGES);
+		$bridgeList = $bridgeFac->getBridgeNames();
+
+		$formatFac = new FormatFactory();
+		$formatFac->setWorkingDir(PATH_LIB_FORMATS);
+		$formats = $formatFac->getFormatNames();
 
 		$totalBridges = count($bridgeList);
 
 		foreach($bridgeList as $bridgeName) {
 
-			if(Bridge::isWhitelisted($bridgeName)) {
+			if($bridgeFac->isWhitelisted($bridgeName)) {
 
 				$body .= BridgeCard::displayBridgeCard($bridgeName, $formats);
 				$totalActiveBridges++;

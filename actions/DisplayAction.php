@@ -18,20 +18,17 @@ class DisplayAction extends ActionAbstract {
 		$format = $this->userData['format']
 			or returnClientError('You must specify a format!');
 
-		// DEPRECATED: 'nameFormat' scheme is replaced by 'name' in format parameter values
-		//             this is to keep compatibility until futher complete removal
-		if(($pos = strpos($format, 'Format')) === (strlen($format) - strlen('Format'))) {
-			$format = substr($format, 0, $pos);
-		}
+		$bridgeFac = new \BridgeFactory();
+		$bridgeFac->setWorkingDir(PATH_LIB_BRIDGES);
 
 		// whitelist control
-		if(!Bridge::isWhitelisted($bridge)) {
+		if(!$bridgeFac->isWhitelisted($bridge)) {
 			throw new \Exception('This bridge is not whitelisted', 401);
 			die;
 		}
 
 		// Data retrieval
-		$bridge = Bridge::create($bridge);
+		$bridge = $bridgeFac->create($bridge);
 
 		$noproxy = array_key_exists('_noproxy', $this->userData)
 			&& filter_var($this->userData['_noproxy'], FILTER_VALIDATE_BOOLEAN);
@@ -85,7 +82,9 @@ class DisplayAction extends ActionAbstract {
 		);
 
 		// Initialize cache
-		$cache = Cache::create(Configuration::getConfig('cache', 'type'));
+		$cacheFac = new CacheFactory();
+		$cacheFac->setWorkingDir(PATH_LIB_CACHES);
+		$cache = $cacheFac->create(Configuration::getConfig('cache', 'type'));
 		$cache->setScope('');
 		$cache->purgeCache(86400); // 24 hours
 		$cache->setKey($cache_params);
@@ -216,7 +215,9 @@ class DisplayAction extends ActionAbstract {
 
 		// Data transformation
 		try {
-			$format = Format::create($format);
+			$formatFac = new FormatFactory();
+			$formatFac->setWorkingDir(PATH_LIB_FORMATS);
+			$format = $formatFac->create($format);
 			$format->setItems($items);
 			$format->setExtraInfos($infos);
 			$format->setLastModified($cache->getTime());
