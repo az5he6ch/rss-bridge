@@ -8,6 +8,7 @@ class TelegramBridge extends BridgeAbstract {
 			'username' => array(
 				'name' => 'Username',
 				'type' => 'text',
+				'required' => true,
 				'exampleValue' => '@telegram',
 			)
 		)
@@ -38,10 +39,12 @@ class TelegramBridge extends BridgeAbstract {
 			$item = array();
 
 			$item['uri'] = $this->processUri($messageDiv);
-			$item['content'] = $this->processContent($messageDiv);
-			$item['title'] = $this->itemTitle;
+			$item['content'] = html_entity_decode($this->processContent($messageDiv), ENT_QUOTES);
+			$item['title'] = html_entity_decode($this->itemTitle, ENT_QUOTES);
 			$item['timestamp'] = $this->processDate($messageDiv);
 			$item['enclosures'] = $this->enclosures;
+			$author = trim($messageDiv->find('a.tgme_widget_message_owner_name', 0)->plaintext);
+			$item['author'] = html_entity_decode($author, ENT_QUOTES);
 
 			$this->items[] = $item;
 		}
@@ -104,6 +107,10 @@ class TelegramBridge extends BridgeAbstract {
 
 		if ($messageDiv->find('a.tgme_widget_message_photo_wrap', 0)) {
 			$message .= $this->processPhoto($messageDiv);
+		}
+
+		if ($messageDiv->find('a.not_supported', 0)) {
+			$message .= $this->processNotSupported($messageDiv);
 		}
 
 		if ($messageDiv->find('div.tgme_widget_message_text.js-message_text', 0)) {
@@ -248,8 +255,29 @@ EOD;
 		return $photos;
 	}
 
+	private function processNotSupported($messageDiv) {
+
+		if (empty($this->itemTitle)) {
+			$this->itemTitle = '@' . $this->processUsername() . ' posted a video';
+		}
+
+		preg_match($this->backgroundImageRegex, $messageDiv->find('i.tgme_widget_message_video_thumb', 0)->style, $photo);
+
+		$this->enclosures[] = $photo[1];
+
+		return <<<EOD
+<a href="{$messageDiv->find('a.not_supported', 0)->href}">
+{$messageDiv->find('div.message_media_not_supported_label', 0)->innertext}<br><br>
+{$messageDiv->find('span.message_media_view_in_telegram', 0)->innertext}<br><br>
+<img src="{$photo[1]}"/></a>
+EOD;
+	}
+
 	private function processDate($messageDiv) {
-		return $messageDiv->find('time', 0)->datetime;
+
+		$messageMeta = $messageDiv->find('span.tgme_widget_message_meta', 0);
+		return $messageMeta->find('time', 0)->datetime;
+
 	}
 
 	private function ellipsisTitle($text) {
